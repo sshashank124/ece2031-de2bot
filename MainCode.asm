@@ -104,18 +104,88 @@ DEAD:      DW &HDEAD   ; Example of a "local variable"
 
 	
 ;***************************************************************
-;* Subroutines
+;* Subroutines - START
 ;***************************************************************
+
+ForwardBackward:
+
+
+FBL:
+    STORE   ANGLEOFFSET
+    ADDI    90
+    JPOS    FBL_GEN90
+    JZERO   FBL_GEN90
+    LOADI   RSlow
+    RETURN
+FBL_GEN90:
+    LOAD    ANGLEOFFSET
+    JPOS    FBL_G0
+    ADDI    30
+    JPOS    FBL_GEN90_F
+    LOADI   FSlow
+    RETURN
+FBL_GEN90_F:
+    LOADI   FFast
+    RETURN
+FBL_G0:
+    LOAD    ANGLEOFFSET
+    ADDI    -90
+    JPOS    fBL_G90
+    LOAD    ANGLEOFFSET
+    ADDI    -30
+    JPOS    FBL_LE90_G30
+    
+FBL_LE90_G30:
+FBL_G90:
+
+ANGLEOFFSET:    DW  &H0000
+
+AngleError:
+    CALL    GetDX
+    STORE   AtanX
+    CALL    GetDY
+    STORE   AtanY
+    CALL    ArcTan
+    STORE   TANVALUE
+    IN      THETA
+    SUB     TANVALUE
+    CALL    Negate
+    CALL    NormAngle
+    RETURN
+TANVALUE:   DW  &H0000    
+
+GetDX:
+    IN      XPOS
+    SUB     CURRX
+    CALL    Negate
+    RETURN
+
+GetDY:
+    IN      YPOS
+    SUB     CURRY
+    CALL    Negate
+    RETURN
+
+ArcTan:
+    CALL    Atan2
+    CALL    NormAngle
+    RETURN
 
 GetTheta:
 	IN		THETA
 	CALL	NormAngle
 	RETURN
 
-;******************************************************************************;
-; TurnToAngle: Change robot heading angle to value stored in AC (-180 to 180)  ;
-;******************************************************************************;
+Negate:
+    STORE   NEGATETEMP
+    LOAD    Zero
+    SUB     NEGATETEMP
+    RETURN
+NEGATETEMP: DW  &H0000
 
+;***************************************************************
+;* Subroutines - END
+;***************************************************************
 
 ; Subroutine to wait (block) for 1 second
 Wait1:
