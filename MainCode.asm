@@ -134,7 +134,6 @@ FBL_G0:
     LOAD    ANGLEOFFSET
     ADDI    -30
     JPOS    FBL_LE90_G30
-    
 FBL_LE90_G30:
 FBL_G90:
 
