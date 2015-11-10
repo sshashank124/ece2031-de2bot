@@ -79,13 +79,15 @@ Main: ; "Real" program starts here.
 	; You will probably want to reset the position at the start your project code:
 	OUT			RESETPOS    ; reset odometer in case wheels moved after programming
 	CALL		UARTClear   ; empty the UART receive FIFO of any old data
-	LOADI		2
-	STORE		AtanX
-	STORE		AtanY
-	CALL		Atan2
-	CALL		NormAngle
-	OUT			LCD
-	CALL		TurnToAngle
+	LOAD		Zero
+	STORE 		DEST_IDX
+	ADDI		24
+	CALL 		ResetDestIndex	;Sets the index to 
+	CALL		GetNextDest	;
+	LOAD		CURRX
+	OUT 		LEDS
+	LOAD		CURRY
+	OUT			XLEDS
 	
 Die:
 ; Sometimes it's useful to permanently stop execution.
@@ -770,6 +772,69 @@ L2Y:  DW 0
 L2T1: DW 0
 L2T2: DW 0
 L2T3: DW 0
+
+;*********************
+;* Destination table *
+;* Stores the sorted (x,y) coordinates the bot will visit
+;*********************
+CURRX:		DW 0
+CURRY:		DW 0
+
+DEST_PTR:	DW 0
+DEST_IDX:	DW 0
+
+DEST_TABLE:
+			DW 0
+Y0:			DW 1
+X1:			DW 2
+Y1:			DW 3
+X2:			DW 4
+Y2:			DW 5
+X3:			DW 6
+Y3:			DW 7
+X4:			DW 8
+Y4:			DW 9
+X5:			DW 10
+Y5:			DW 11
+X6:			DW 12
+Y6:			DW 13
+X7:			DW 14
+Y7:			DW 15
+X8:			DW 16
+Y8:			DW 17
+X9:			DW 18
+Y9:			DW 19
+X10:		DW 20
+Y10:		DW 21
+X11:		DW 22
+Y11:		DW 23
+
+; GetNextDest subroutine
+; Warning! Clobbers AC
+; Gets next X, Y from table and stores in CURRX, CURRY
+; Increments index with every call so next call to GetNextDest returns the next destination
+; Value in AC should be no greater than 22
+GetNextDest:
+	LOADI	DEST_TABLE
+	ADD 	DEST_IDX
+	STORE 	DEST_PTR
+	ILOAD	DEST_PTR
+	STORE 	CURRX
+	LOAD 	DEST_PTR
+	ADDI 	1 ; Increment to Y value
+	STORE 	DEST_PTR
+	ILOAD 	DEST_PTR
+	STORE 	CURRY
+	LOAD 	DEST_IDX
+	ADDI 	2
+	STORE 	DEST_IDX
+	RETURN
+
+; Sets the index to whatever value is in the AC
+; Value must be even.
+ResetDestIndex:
+	STORE	DEST_IDX
+	RETURN
 	
 ;***************************************************************
 ;* Variables
