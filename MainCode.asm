@@ -84,7 +84,7 @@ Main: ; "Real" program starts here.
 	ADDI		24
 	CALL 		ResetDestIndex	;Sets the index to 
 	CALL		GetNextDest	;
-	LOAD		CURRX
+	LOAD		CURRX           ; This is just code to test some stuff
 	OUT 		LEDS
 	LOAD		CURRY
 	OUT			XLEDS
