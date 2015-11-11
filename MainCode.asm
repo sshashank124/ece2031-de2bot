@@ -79,16 +79,12 @@ Main: ; "Real" program starts here.
 	; You will probably want to reset the position at the start your project code:
 	OUT			RESETPOS    ; reset odometer in case wheels moved after programming
 	CALL		UARTClear   ; empty the UART receive FIFO of any old data
-	LOAD		Zero
-	STORE 		DEST_IDX
-	ADDI		24
-	CALL 		ResetDestIndex	;Sets the index to 
-	CALL		GetNextDest	;
-	LOAD		CURRX           ; This is just code to test some stuff
-	OUT 		LEDS
-	LOAD		CURRY
-	OUT			XLEDS
-	
+    LOADI       4
+    STORE       CURRX
+    LOADI       0
+    STORE       CURRY
+    CALL        ForwardBackward
+
 Die:
 ; Sometimes it's useful to permanently stop execution.
 ; This will also catch the execution if it accidentally
@@ -110,38 +106,74 @@ DEAD:      DW &HDEAD   ; Example of a "local variable"
 ;***************************************************************
 
 ForwardBackward:
+    CALL    GetAngleError
+    STORE   ANGLE_ERROR
+    CALL    FBL
+    OUT     LVELCMD
+    LOAD    ANGLE_ERROR
+    CALL    FBR
+    OUT     RVELCMD
+    CALL    IsNearPoint
+    JPOS    FBExit
+    JUMP    ForwardBackward
+FBExit:
+    RETURN
 
+ANGLE_ERROR:    DW  &H0000
 
 FBL:
     STORE   ANGLEOFFSET
     ADDI    90
     JPOS    FBL_GEN90
     JZERO   FBL_GEN90
-    LOADI   RSlow
+    LOADI   RSlow           ; -180 <= angle < -90
     RETURN
 FBL_GEN90:
     LOAD    ANGLEOFFSET
     JPOS    FBL_G0
-    ADDI    30
-    JPOS    FBL_GEN90_F
-    LOADI   FSlow
-    RETURN
-FBL_GEN90_F:
-    LOADI   FFast
+    LOADI   FSlow           ; -90 <= angle <= 0
     RETURN
 FBL_G0:
     LOAD    ANGLEOFFSET
     ADDI    -90
-    JPOS    fBL_G90
+    JPOS    FBL_G90
     LOAD    ANGLEOFFSET
-    ADDI    -30
-    JPOS    FBL_LE90_G30
-FBL_LE90_G30:
+    STORE   m16sA
+    LOAD    FSlow
+    STORE   m16sB
+    CALL    Mult16s
+    LOAD    mres16sL
+    SHIFT   -2
+    AND     LOWMASK
+    STORE   SHIFTEDLOW
+    LOAD    mres16sH
+    SHIFT   14
+    OR      SHIFTEDLOW
+    STORE   d16sN
+    LOADI   11
+    STORE   d16sD
+    CALL    Div16s
+    STORE   DIVRESULT
+    LOAD    FSlow
+    SUB     DIVRESULT
+    RETURN
 FBL_G90:
+    CALL    FBL_G0
+    ADD     FSlow
+    ADD     FSlow
+    RETURN
+
+FBR:
+    CALL    Negate
+    CALL    FBL
+    RETURN
 
 ANGLEOFFSET:    DW  &H0000
+LOWMASK:        DW  &H3FFF
+SHIFTEDLOW:     DW  &H0000
+DIVRESULT:      DW  &H0000
 
-AngleError:
+GetAngleError:
     CALL    GetDX
     STORE   AtanX
     CALL    GetDY
@@ -155,15 +187,42 @@ AngleError:
     RETURN
 TANVALUE:   DW  &H0000    
 
-GetDX:
+IsNearPoint:
+    CALL    GetDX
+    ADDI    -60
+    JNEG    IsNearPointCheckY
+    JUMP    IsNearPointFalse
+IsNearPointCheckY:
+    CALL    GetDY
+    ADDI    -60
+    JNEG    IsNearPointTrue
+    JUMP    IsNearPointFalse
+IsNearPointTrue:
+    LOADI   1
+    RETURN
+IsNearPointFalse:
+    LOADI   -1
+    RETURN
+
+GetDX
+    LOAD    CURRX
+    STORE   m16sA
+    LOAD    290
+    STORE   m16sB
+    CALL    Mult16s
     IN      XPOS
-    SUB     CURRX
+    SUB     mres16sL
     CALL    Negate
     RETURN
 
 GetDY:
+    LOAD    CURRY
+    STORE   m16sA
+    LOAD    290
+    STORE   m16sB
+    CALL    Mult16s
     IN      YPOS
-    SUB     CURRY
+    SUB     mres16sL
     CALL    Negate
     RETURN
 
